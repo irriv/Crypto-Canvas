@@ -29,14 +29,14 @@ class CryptoCanvas:
                                        command=self.IH.decrypt_image)
 
         self.__hide_image_button = Button(self.__main_window, text="Hide image",
-                                       command=self.IH.hide_image, state=DISABLED)
+                                       command=self.IH.hide_image)
         self.__find_image_button = Button(self.__main_window, text="Find image",
-                                       command=self.IH.find_image, state=DISABLED)
+                                       command=self.IH.find_image)
 
         self.__hide_text_button = Button(self.__main_window, text="Hide text",
-                                       command=self.IH.hide_text, state=DISABLED)
+                                       command=self.IH.hide_text)
         self.__find_text_button = Button(self.__main_window, text="Find text",
-                                       command=self.IH.find_text, state=DISABLED)
+                                       command=self.IH.find_text)
 
         self.__quit_button = Button(self.__main_window, text="Quit",
                                     command=self.quit)
