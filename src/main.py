@@ -13,14 +13,14 @@ class CryptoCanvas:
         self.main_window.resizable(width=False, height=False)
 
         self.status = Label(self.main_window, font=("Times", 12),
-                              text="Status")
+                              text="Signed out")
 
         self.sign_in_button = Button(self.main_window, text="Sign in",
-                                       command=self.Auth.sign_in, state=DISABLED)
+                                       command=self.on_signin)
         self.sign_up_button = Button(self.main_window, text="Sign up",
-                                       command=self.Auth.sign_up, state=DISABLED)
+                                       command=self.on_signup)
         self.sign_out_button = Button(self.main_window, text="Sign out",
-                                       command=self.Auth.sign_out, state=DISABLED)
+                                       command=self.on_signout, state=DISABLED)
 
         self.encrypt_button = Button(self.main_window, text="Encrypt image",
                                        command=self.IH.encrypt_image)
@@ -61,8 +61,36 @@ class CryptoCanvas:
         # Wait for input.
         self.main_window.mainloop()
 
+    def on_signup(self):
+        self.Auth.sign_up()
+        if self.Auth.logged_in:
+            self.update_button_states()
+            self.status.config(text=f"Signed in: {self.Auth.current_user}")
+
+    def on_signin(self):
+        self.Auth.sign_in()
+        if self.Auth.logged_in:
+            self.update_button_states()
+            self.status.config(text=f"Signed in: {self.Auth.current_user}")
+
+    def on_signout(self):
+        self.Auth.sign_out()
+        if not self.Auth.logged_in:
+            self.update_button_states()
+            self.status.config(text="Signed out")
+
     def quit(self):
         self.main_window.destroy()
+
+    def update_button_states(self):
+        if self.Auth.logged_in:
+            self.sign_in_button.config(state=DISABLED)
+            self.sign_up_button.config(state=DISABLED)
+            self.sign_out_button.config(state=NORMAL)
+        else:
+            self.sign_in_button.config(state=NORMAL)
+            self.sign_up_button.config(state=NORMAL)
+            self.sign_out_button.config(state=DISABLED)
 
 
 if __name__ == "__main__":
