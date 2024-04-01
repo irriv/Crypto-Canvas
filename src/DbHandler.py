@@ -28,9 +28,9 @@ class DbHandler:
         rows = self.cursor.fetchmany(limit)
         return [row[0] for row in rows]
 
-    def get_image_by_name(self, user_id, image_name):
+    def get_image_by_name(self, user_id, name):
         self.cursor.execute("SELECT * FROM images WHERE user_id = ? AND name = ?",
-            (user_id, image_name))
+            (user_id, name))
         return self.cursor.fetchone()
 
     def get_user(self, email):
@@ -41,6 +41,12 @@ class DbHandler:
         self.cursor.execute(
             "INSERT INTO images (user_id, name, data) VALUES (?, ?, ?)",
             (user_id, name, image_data))
+        self.connection.commit()
+
+    def delete_image(self, user_id, name):
+        self.cursor.execute(
+            "DELETE FROM images WHERE user_id = ? AND name = ?",
+            (user_id, name))
         self.connection.commit()
 
     def add_user(self, name, email, password, salt):

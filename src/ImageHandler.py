@@ -1,4 +1,3 @@
-
 from tkinter import filedialog, simpledialog, messagebox
 from secrets import token_bytes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -7,107 +6,95 @@ from os.path import splitext
 from stegano import lsb
 
 class ImageHandler:
-    def encrypt_image(self):
+    def encrypt_image(self, image_data):
         try:
-            filepath = filedialog.askopenfilename(filetypes=[('Image to encrypt', '*.jpg;*.jpeg;*.png;')])
-            with open(filepath, 'rb') as file:
-                image_data = file.read()
             nonce = token_bytes(12)
             key = token_bytes(32)
             password = simpledialog.askstring('Password', 'Enter password for resulting file:').encode('utf-8')
             ciphertext = AESGCM(key).encrypt(nonce, image_data, password)
-            root, extension = splitext(filepath)
-            filepath = f'{root}_encrypted_image{extension}'
+            filepath = self.get_save_image_filepath()
+            if not filepath:
+                return
             with open(filepath, 'wb') as encrypted_file:
                 encrypted_file.write(ciphertext)
-            messagebox.showinfo('Success', f'Encryption successful. Encrypted image saved to {filepath}')
+            self.show_success(f'Encryption successful. Encrypted image saved to {filepath}')
             startfile(filepath)
-            root, extension = splitext(filepath)
-            filepath = f'{root}_encryption_info.txt'
-            with open(filepath, 'w') as file:
+            root, _ = splitext(filepath)
+            info_filepath = f'{root}_encryption_info.txt'
+            with open(info_filepath, 'w') as file:
                 file.write('Nonce: ' + nonce.hex() + '\n')
                 file.write('Key: ' + key.hex() + '\n')
                 file.write('Password: ' + password.decode('utf-8') + '\n')
-            messagebox.showinfo('Success', f'Encryption info written to {filepath}')
-            startfile(filepath)
+            self.show_success(f'Encryption info written to {info_filepath}')
+            startfile(info_filepath)
         except Exception as e:
-            messagebox.showerror('Error', f'Encrypting image failed: {e}')
+            self.show_error(f'Encrypting image failed: {e}')
 
-    def decrypt_image(self):
+    def decrypt_image(self, image_data):
         try:
-            filepath = filedialog.askopenfilename(filetypes=[('Encrypted image', '*.jpg;*.jpeg;*.png;')])
-            with open(filepath, 'rb') as file:
-                encrypted_data = file.read()
             nonce = bytes.fromhex(simpledialog.askstring('Nonce', 'Enter nonce:'))
             key = bytes.fromhex(simpledialog.askstring('Key', 'Enter key:'))
             password = simpledialog.askstring('Password', 'Enter password:').encode('utf-8')
-            image_data = AESGCM(key).decrypt(nonce, encrypted_data, password)
-            root, extension = splitext(filepath)
-            filepath = f'{root}_decrypted_image{extension}'
+            decrypted_data = AESGCM(key).decrypt(nonce, image_data, password)
+            filepath = self.get_save_image_filepath()
+            if not filepath:
+                return
             with open(filepath, 'wb') as decrypted_file:
-                decrypted_file.write(image_data)
-            messagebox.showinfo('Success', f'Decryption successful. Decrypted image saved to {filepath}')
+                decrypted_file.write(decrypted_data)
+            self.show_success(f'Decryption successful. Decrypted image saved to {filepath}')
             startfile(filepath)
         except Exception as e:
-            messagebox.showerror('Error', f'Decrypting image failed: {e}')
+            self.show_error(f'Decrypting image failed: {e}')
 
-    def hide_image(self):
+    def hide_image(self, carrier_image_path, secret_image_data):
         try:
-            carrier_filepath = filedialog.askopenfilename(filetypes=[('Carrier image', '*.png;')])
-            secret_filepath = filedialog.askopenfilename(filetypes=[('Image to hide', '*.png;')])
-            with open(secret_filepath, 'rb') as f:
-                image_bytes = f.read()
-            hex_string = image_bytes.hex()
-            carrier_image = lsb.hide(carrier_filepath, hex_string)
-            root, extension = splitext(carrier_filepath)
-            filepath = f'{root}_hidden_image{extension}'
+            hex_string = secret_image_data.hex()
+            carrier_image = lsb.hide(carrier_image_path, hex_string)
+            root, _ = splitext(carrier_image_path)
+            filepath = self.get_save_image_filepath()
             carrier_image.save(filepath)
-            messagebox.showinfo('Success', f'Image hidden successfully. Stego image saved to {filepath}')
+            self.show_success(f'Image hidden successfully. Stego image saved to {filepath}')
             carrier_image.show()
         except Exception as e:
-            messagebox.showerror('Error', f'Hiding image failed: {e}')
+            self.show_error(f'Hiding image failed: {e}')
 
-    def reveal_image(self):
+    def reveal_image(self, filepath):
         try:
-            filepath = filedialog.askopenfilename(filetypes=[('Stego image', '*.png;')])
             hex_string = lsb.reveal(filepath)
-            root, extension = splitext(filepath)
-            filepath = f'{root}_revealed_image{extension}'
+            filepath = self.get_save_image_filepath()
             with open(filepath, 'wb') as f:
                 f.write(bytes.fromhex(hex_string))
-            messagebox.showinfo('Success', f'Image revealed successfully. Revealed image saved to {filepath}')
+            self.show_success(f'Image revealed successfully. Revealed image saved to {filepath}')
             startfile(filepath)
         except Exception as e:
-            messagebox.showerror('Error', f'Revealing image failed: {e}')
+            self.show_error(f'Revealing image failed: {e}')
 
-    def hide_text(self):
+    def hide_text(self, carrier_image_path, secret_text):
         try:
-            filepath = filedialog.askopenfilename(filetypes=[('Carrier image', '*.png;')])
-            choice = messagebox.askquestion('Text input', 'Select a file or enter text')
-            if choice == 'yes':
-                text_filepath = filedialog.askopenfilename(filetypes=[('Text to hide', '*.txt;')])
-                with open(text_filepath, 'r') as f:
-                    text = f.read()
-            else:
-                text = simpledialog.askstring('Text', 'Enter text to hide:')
-            carrier_image = lsb.hide(filepath, text)
-            root, extension = splitext(filepath)
-            filepath = f'{root}_hidden_text{extension}'
+            carrier_image = lsb.hide(carrier_image_path, secret_text)
+            filepath = self.get_save_image_filepath()
             carrier_image.save(filepath)
-            messagebox.showinfo('Success', f'Text hidden successfully. Stego image saved to {filepath}')
+            self.show_success(f'Text hidden successfully. Stego image saved to {filepath}')
             carrier_image.show()
         except Exception as e:
-            messagebox.showerror('Error', f'Hiding text failed: {e}')
+            self.show_error(f'Hiding text failed: {e}')
 
-    def reveal_text(self):
+    def reveal_text(self, filepath):
         try:
-            filepath = filedialog.askopenfilename(filetypes=[('Stego image', '*.png;')])
             revealed_text = lsb.reveal(filepath)
-            root, extension = splitext(filepath)
-            filepath = f'{root}_revealed_text.txt'
-            with open(filepath, 'wb') as f:
-                f.write(revealed_text.encode('utf-8'))
-            messagebox.showinfo('Success', f'Text revealed successfully. Revealed text saved to {filepath}')
+            filepath = filedialog.asksaveasfilename(defaultextension='.txt', filetypes=[('TXT files','*.txt')])
+            with open(filepath, 'w') as f:
+                f.write(revealed_text)
+            self.show_success(f'Text revealed successfully. Revealed text saved to {filepath}')
             startfile(filepath)
         except Exception as e:
-            messagebox.showerror('Error', f'Revealing text failed: {e}')
+            self.show_error(f'Revealing text failed: {e}')
+
+    def show_success(self, msg):
+        messagebox.showinfo('Success', msg)
+
+    def show_error(self, msg):
+        messagebox.showerror('Error', msg)
+
+    def get_save_image_filepath(self):
+        return filedialog.asksaveasfilename(defaultextension='.png', filetypes=[('PNG files','*.png')])
