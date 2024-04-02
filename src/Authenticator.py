@@ -16,23 +16,34 @@ class Authenticator:
         return hashed_password
 
     def sign_up(self):
-        email = simpledialog.askstring('Email', 'Enter email:')
-        if not email:
-            messagebox.showerror('Error', 'Operation canceled.')
-            return
+        email = ''
+        email_validate_pattern = r"^\S+@\S+\.\S+$" # https://uibakery.io/regex-library/email-regex-python
         self.db_handler.connect_db()
         existing_user = self.db_handler.get_user(email)
-        if existing_user:
-            messagebox.showerror('Error', 'User with this email already exists.')
-            return
-        email_validate_pattern = r"^\S+@\S+\.\S+$"
-        match(email_validate_pattern, email)
-        password = simpledialog.askstring('Password', 'Enter password:')
-        if not password:
-            messagebox.showerror('Error', 'Operation canceled.')
-            return
-        password_validate_pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!#%*?&]{6,20}$"
-        match(password_validate_pattern, password)
+        while not match(email_validate_pattern, email):
+            email = simpledialog.askstring('Email', 'Enter email:')
+            if not email:
+                messagebox.showerror('Error', 'Operation canceled.')
+                return
+            if existing_user:
+                messagebox.showerror('Error', 'User with this email already exists.')
+            elif not match(email_validate_pattern, email):
+                messagebox.showerror('Error', 'Invalid email format.')
+        password = ''
+        password_validate_pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!#%*?&]{6,20}$"  # https://www.geeksforgeeks.org/password-validation-in-python/
+        while not match(password_validate_pattern, password):
+            password = simpledialog.askstring('Password', 'Enter password:')
+            if not password:
+                messagebox.showerror('Error', 'Operation canceled.')
+                return
+            if not match(password_validate_pattern, password):
+                messagebox.showerror('Error', 'Invalid password format.\n'
+                                              'The password requires:\n'
+                                              '1. a number.\n'
+                                              '2. an uppercase letter.\n'
+                                              '3. a lowercase character.\n'
+                                              '4. a special symbol.\n'
+                                              '5. length of 6 to 20 characters.')
         salt = urandom(32)
         hashed_password = self.hash_password(password, salt)
         name = simpledialog.askstring('Name', 'Enter name:')
@@ -46,28 +57,31 @@ class Authenticator:
         messagebox.showinfo('Success', f'Signed up successfully as {self.current_user.name}')
 
     def sign_in(self):
-        email = simpledialog.askstring('Email', 'Enter email:')
-        if not email:
-            messagebox.showerror('Error', 'Operation canceled.')
-            return
+        user = None
         self.db_handler.connect_db()
-        user = self.db_handler.get_user(email)
-        if not user:
-            messagebox.showerror('Error', 'User not found.')
-            return
-        password = simpledialog.askstring('Password', 'Enter password:')
-        if not password:
-            messagebox.showerror('Error', 'Operation canceled.')
-            return
+        while not user:
+            email = simpledialog.askstring('Email', 'Enter email:')
+            if not email:
+                messagebox.showerror('Error', 'Operation canceled.')
+                return
+            user = self.db_handler.get_user(email)
+            if not user:
+                messagebox.showerror('Error', 'User not found.')
         user_id, name, stored_email, stored_password, salt = user
-        hashed_password = self.hash_password(password, salt)
-        if hashed_password == stored_password:
-            self.logged_in = True
-            self.current_user = CurrentUser(user_id, name)
-            messagebox.showinfo('Success',
-                                f'Signed in successfully as {self.current_user.name}')
-        else:
-            messagebox.showwarning('Warning', 'Incorrect password.')
+        hashed_password = None
+        while hashed_password != stored_password:
+            password = simpledialog.askstring('Password', 'Enter password:')
+            if not password:
+                messagebox.showerror('Error', 'Operation canceled.')
+                return
+            hashed_password = self.hash_password(password, salt)
+            if hashed_password == stored_password:
+                self.logged_in = True
+                self.current_user = CurrentUser(user_id, name)
+                messagebox.showinfo('Success',
+                                    f'Signed in successfully as {self.current_user.name}')
+            else:
+                messagebox.showwarning('Warning', 'Incorrect password.')
 
     def sign_out(self):
         self.db_handler.disconnect_db()

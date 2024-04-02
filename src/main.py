@@ -1,11 +1,13 @@
 from os import remove
 from os.path import basename
 from tkinter import Tk, Button, Label, Listbox, END, DISABLED, NORMAL, \
-    messagebox, filedialog, simpledialog
+    messagebox, filedialog, simpledialog, Frame
 from Authenticator import Authenticator
 from ImageHandler import ImageHandler
 from tempfile import NamedTemporaryFile
 from sqlite3 import IntegrityError
+from PIL import Image, ImageTk, UnidentifiedImageError
+from io import BytesIO
 
 class CryptoCanvas:
     def __init__(self):
@@ -13,6 +15,7 @@ class CryptoCanvas:
         self.IH = ImageHandler()
         self.current_image_page = 1
         self.images_per_page = 10
+        self.photo_image = None
         self.create_gui()
 
     def create_gui(self):
@@ -22,14 +25,14 @@ class CryptoCanvas:
 
         self.status = Label(self.main_window, font=("Times", 12),
                             text="Signed out")
-        self.status.grid(row=0, column=0, columnspan=4)
+        self.status.grid(row=0, column=0, columnspan=5)
 
         self.create_auth_buttons()
         self.create_image_buttons()
         self.create_image_listbox()
         self.quit_button = Button(self.main_window, text="Quit",
                                   command=self.quit)
-        self.quit_button.grid(row=6, column=5, sticky="we")
+        self.quit_button.grid(row=6, column=4, sticky="we")
 
         self.main_window.mainloop()
 
@@ -41,9 +44,9 @@ class CryptoCanvas:
         self.sign_out_button = Button(self.main_window, text="Sign out",
                                       command=self.on_sign_out, state=DISABLED)
 
-        self.sign_in_button.grid(row=1, column=1, sticky="we")
-        self.sign_up_button.grid(row=1, column=2, sticky="we")
-        self.sign_out_button.grid(row=1, column=3, sticky="we")
+        self.sign_in_button.grid(row=3, column=0, sticky="we")
+        self.sign_up_button.grid(row=3, column=1, sticky="we")
+        self.sign_out_button.grid(row=3, column=2, sticky="we")
 
     def create_image_buttons(self):
         self.encrypt_button = Button(self.main_window, text="Encrypt image",
@@ -52,25 +55,26 @@ class CryptoCanvas:
                                      command=self.on_decrypt_image)
         self.hide_image_button = Button(self.main_window, text="Hide image",
                                         command=self.on_hide_image)
-        self.find_image_button = Button(self.main_window, text="Reveal image",
+        self.reveal_image_button = Button(self.main_window, text="Reveal image",
                                         command=self.on_reveal_image)
         self.hide_text_button = Button(self.main_window, text="Hide text",
                                        command=self.on_hide_text)
-        self.find_text_button = Button(self.main_window, text="Reveal text",
+        self.reveal_text_button = Button(self.main_window, text="Reveal text",
                                        command=self.on_reveal_text)
 
-        self.encrypt_button.grid(row=2, column=1, sticky="we")
-        self.decrypt_button.grid(row=2, column=2, sticky="we")
-        self.hide_image_button.grid(row=3, column=1, sticky="we")
-        self.find_image_button.grid(row=3, column=2, sticky="we")
-        self.hide_text_button.grid(row=4, column=1, sticky="we")
-        self.find_text_button.grid(row=4, column=2, sticky="we")
+        self.encrypt_button.grid(row=4, column=0, sticky="wes")
+        self.decrypt_button.grid(row=4, column=1, sticky="wes")
+        self.hide_image_button.grid(row=5, column=0, sticky="we")
+        self.reveal_image_button.grid(row=5, column=1, sticky="we")
+        self.hide_text_button.grid(row=6, column=0, sticky="we")
+        self.reveal_text_button.grid(row=6, column=1, sticky="we")
 
     def create_image_listbox(self):
+        self.image_display_frame = Frame(self.main_window, width=200, height=int(200*9/16), bg="white")
+        self.image_display_frame.pack_propagate(False)
+        self.image_display = Label(self.image_display_frame, bg="white", fg="black", text="No image selected.")
+        self.image_display.pack(expand=True, fill="both")
         self.images_listbox = Listbox(self.main_window)
-        self.images_listbox.grid(row=0, column=4, rowspan=4, columnspan=2,
-                                 sticky="wens")
-
         self.next_page_button = Button(self.main_window, text="Next Page",
                                        command=self.show_next_page,
                                        state=DISABLED)
@@ -82,11 +86,14 @@ class CryptoCanvas:
         self.delete_button = Button(self.main_window, text="Delete image",
                                  command=self.delete_image, state=DISABLED)
 
+        self.image_display_frame.grid(row=1, column=3, columnspan=2, sticky="we")
+        self.images_listbox.grid(row=2, column=3, columnspan=2, sticky="wens")
+        self.prev_page_button.grid(row=3, column=3, sticky="we")
+        self.next_page_button.grid(row=3, column=4, sticky="we")
+        self.add_button.grid(row=4, column=3, sticky="we")
+        self.delete_button.grid(row=4, column=4, sticky="we")
 
-        self.next_page_button.grid(row=4, column=5, sticky="we")
-        self.prev_page_button.grid(row=4, column=4, sticky="we")
-        self.add_button.grid(row=5, column=4, sticky="we")
-        self.delete_button.grid(row=5, column=5, sticky="we")
+        self.images_listbox.bind("<<ListboxSelect>>", self.on_listbox_select)
 
     def on_sign_up(self):
         self.Auth.sign_up()
@@ -107,6 +114,7 @@ class CryptoCanvas:
         if not self.Auth.logged_in:
             self.images_listbox.delete(0, END)
             self.current_image_page = 1
+            self.clear_image_display()
             self.update_button_states()
             self.status.config(text="Signed out")
 
@@ -205,7 +213,6 @@ class CryptoCanvas:
         else:
             self.prev_page_button.config(state=DISABLED)
 
-
     def show_next_page(self):
         self.current_image_page += 1
         self.update_images_list()
@@ -295,8 +302,7 @@ class CryptoCanvas:
             if image:
                 return image[3]
             else:
-                messagebox.showerror('Error',
-                                     'Image not found in the database.')
+                messagebox.showerror('Error', 'Image not found in the database.')
                 return None
         else:
             messagebox.showerror('Error', 'No image selected.')
@@ -322,6 +328,39 @@ class CryptoCanvas:
 
     def listbox_has_selection(self):
         return bool(self.images_listbox.curselection())
+
+    def fetch_image_data(self):
+        selected_image = self.images_listbox.curselection()
+        if selected_image:
+            image_name = self.images_listbox.get(selected_image[0])
+            image = self.Auth.db_handler.get_image_by_name(
+                self.Auth.current_user.id, image_name)
+            if image:
+                return image[3]
+        else:
+            return None
+
+    def display_image(self):
+        image_data = self.fetch_image_data()
+        if not image_data:
+            self.clear_image_display()
+        else:
+            try:
+                image_stream = BytesIO(image_data)
+                image = Image.open(image_stream)
+                image.thumbnail((200, 200*9/16))
+                tk_image = ImageTk.PhotoImage(image)
+                self.photo_image = tk_image
+                self.image_display.config(image=self.photo_image, width=200, height=int(200*9/16))
+                self.image_display.config(text="")
+            except UnidentifiedImageError as e:
+                self.image_display.config(image='', text='Cannot display image.')
+
+    def on_listbox_select(self, event):
+        self.display_image()
+
+    def clear_image_display(self):
+        self.image_display.config(image='', text='No image selected.')
 
 if __name__ == "__main__":
     CryptoCanvas()
