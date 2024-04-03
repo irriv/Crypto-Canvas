@@ -32,7 +32,7 @@ class CryptoCanvas:
         self.create_image_listbox()
         self.quit_button = Button(self.main_window, text="Quit",
                                   command=self.quit)
-        self.quit_button.grid(row=6, column=4, sticky="we")
+        self.quit_button.grid(row=5, column=4, sticky="we")
 
         self.main_window.mainloop()
 
@@ -44,9 +44,9 @@ class CryptoCanvas:
         self.sign_out_button = Button(self.main_window, text="Sign out",
                                       command=self.on_sign_out, state=DISABLED)
 
-        self.sign_in_button.grid(row=3, column=0, sticky="we")
-        self.sign_up_button.grid(row=3, column=1, sticky="we")
-        self.sign_out_button.grid(row=3, column=2, sticky="we")
+        self.sign_in_button.grid(row=2, column=0, sticky="we")
+        self.sign_up_button.grid(row=2, column=1, sticky="we")
+        self.sign_out_button.grid(row=2, column=2, sticky="we")
 
     def create_image_buttons(self):
         self.encrypt_button = Button(self.main_window, text="Encrypt image",
@@ -62,15 +62,15 @@ class CryptoCanvas:
         self.reveal_text_button = Button(self.main_window, text="Reveal text",
                                        command=self.on_reveal_text)
 
-        self.encrypt_button.grid(row=4, column=0, sticky="wes")
-        self.decrypt_button.grid(row=4, column=1, sticky="wes")
-        self.hide_image_button.grid(row=5, column=0, sticky="we")
-        self.reveal_image_button.grid(row=5, column=1, sticky="we")
-        self.hide_text_button.grid(row=6, column=0, sticky="we")
-        self.reveal_text_button.grid(row=6, column=1, sticky="we")
+        self.encrypt_button.grid(row=3, column=0, sticky="wes")
+        self.decrypt_button.grid(row=3, column=1, sticky="wes")
+        self.hide_image_button.grid(row=4, column=0, sticky="we")
+        self.reveal_image_button.grid(row=4, column=1, sticky="we")
+        self.hide_text_button.grid(row=5, column=0, sticky="we")
+        self.reveal_text_button.grid(row=5, column=1, sticky="we")
 
     def create_image_listbox(self):
-        self.image_display_frame = Frame(self.main_window, width=200, height=int(200*9/16), bg="white")
+        self.image_display_frame = Frame(self.main_window, bg="white")
         self.image_display_frame.pack_propagate(False)
         self.image_display = Label(self.image_display_frame, bg="white", fg="black", text="No image selected.")
         self.image_display.pack(expand=True, fill="both")
@@ -86,12 +86,12 @@ class CryptoCanvas:
         self.delete_button = Button(self.main_window, text="Delete image",
                                  command=self.delete_image, state=DISABLED)
 
-        self.image_display_frame.grid(row=1, column=3, columnspan=2, sticky="we")
-        self.images_listbox.grid(row=2, column=3, columnspan=2, sticky="wens")
-        self.prev_page_button.grid(row=3, column=3, sticky="we")
-        self.next_page_button.grid(row=3, column=4, sticky="we")
-        self.add_button.grid(row=4, column=3, sticky="we")
-        self.delete_button.grid(row=4, column=4, sticky="we")
+        self.image_display_frame.grid(row=1, column=0, columnspan=3, sticky="wens")
+        self.images_listbox.grid(row=1, column=3, columnspan=2, sticky="wens")
+        self.prev_page_button.grid(row=2, column=3, sticky="we")
+        self.next_page_button.grid(row=2, column=4, sticky="we")
+        self.add_button.grid(row=3, column=3, sticky="we")
+        self.delete_button.grid(row=3, column=4, sticky="we")
 
         self.images_listbox.bind("<<ListboxSelect>>", self.on_listbox_select)
 
@@ -348,10 +348,11 @@ class CryptoCanvas:
             try:
                 image_stream = BytesIO(image_data)
                 image = Image.open(image_stream)
-                image.thumbnail((200, 200*9/16))
+                width = self.image_display_frame.winfo_width()
+                image.thumbnail((width, image.height))
                 tk_image = ImageTk.PhotoImage(image)
                 self.photo_image = tk_image
-                self.image_display.config(image=self.photo_image, width=200, height=int(200*9/16))
+                self.image_display.config(image=self.photo_image)
                 self.image_display.config(text="")
             except UnidentifiedImageError as e:
                 self.image_display.config(image='', text='Cannot display image.')
