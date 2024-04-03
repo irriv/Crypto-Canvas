@@ -10,7 +10,10 @@ from PIL import Image, ImageTk, UnidentifiedImageError
 from io import BytesIO
 
 class CryptoCanvas:
+    """Creates a GUI application for managing images and performing cryptographic operations."""
+
     def __init__(self):
+        """Initializes the CryptoCanvas application."""
         self.Auth = Authenticator()
         self.IH = ImageHandler()
         self.current_image_page = 1
@@ -19,6 +22,7 @@ class CryptoCanvas:
         self.create_gui()
 
     def create_gui(self):
+        """Creates the graphical user interface for the application."""
         self.main_window = Tk()
         self.main_window.title("CryptoCanvas")
         self.main_window.resizable(width=False, height=False)
@@ -37,6 +41,7 @@ class CryptoCanvas:
         self.main_window.mainloop()
 
     def create_auth_buttons(self):
+        """Creates buttons for authentication actions (Sign In, Sign Up, Sign Out)."""
         self.sign_in_button = Button(self.main_window, text="Sign in",
                                      command=self.on_sign_in)
         self.sign_up_button = Button(self.main_window, text="Sign up",
@@ -49,6 +54,7 @@ class CryptoCanvas:
         self.sign_out_button.grid(row=2, column=2, sticky="we")
 
     def create_image_buttons(self):
+        """Creates buttons for image-related actions (Encrypt, Decrypt, Hide, Reveal)."""
         self.encrypt_button = Button(self.main_window, text="Encrypt image",
                                      command=self.on_encrypt_image)
         self.decrypt_button = Button(self.main_window, text="Decrypt image",
@@ -70,6 +76,7 @@ class CryptoCanvas:
         self.reveal_text_button.grid(row=5, column=1, sticky="we")
 
     def create_image_listbox(self):
+        """Creates a listbox to display images and related controls."""
         self.image_display_frame = Frame(self.main_window, bg="white")
         self.image_display_frame.pack_propagate(False)
         self.image_display = Label(self.image_display_frame, bg="white", fg="black", text="No image selected.")
@@ -96,6 +103,7 @@ class CryptoCanvas:
         self.images_listbox.bind("<<ListboxSelect>>", self.on_listbox_select)
 
     def on_sign_up(self):
+        """Handles the Sign Up button click event."""
         self.Auth.sign_up()
         if self.Auth.logged_in:
             self.update_button_states()
@@ -103,6 +111,7 @@ class CryptoCanvas:
                 text=f"Signed in: {self.Auth.current_user.name}")
 
     def on_sign_in(self):
+        """Handles the Sign In button click event."""
         self.Auth.sign_in()
         if self.Auth.logged_in:
             self.update_images_list()
@@ -110,6 +119,7 @@ class CryptoCanvas:
                 text=f"Signed in: {self.Auth.current_user.name}")
 
     def on_sign_out(self):
+        """Handles the Sign Out button click event."""
         self.Auth.sign_out()
         if not self.Auth.logged_in:
             self.images_listbox.delete(0, END)
@@ -119,16 +129,19 @@ class CryptoCanvas:
             self.status.config(text="Signed out")
 
     def on_encrypt_image(self):
+        """Handles the Encrypt Image button click event."""
         image_data = self.get_image_data()
         if image_data:
             self.IH.encrypt_image(image_data)
 
     def on_decrypt_image(self):
+        """Handles the Decrypt Image button click event."""
         image_data = self.get_image_data()
         if image_data:
             self.IH.decrypt_image(image_data)
 
     def on_hide_image(self):
+        """Handles the Hide Image button click event."""
         carrier_image_path, is_from_db = self.get_image_filepath()
         if not carrier_image_path:
             return
@@ -140,6 +153,7 @@ class CryptoCanvas:
             remove(carrier_image_path)
 
     def on_reveal_image(self):
+        """Handles the Reveal Image button click event."""
         image_path, is_from_db = self.get_image_filepath()
         if not image_path:
             return
@@ -148,6 +162,7 @@ class CryptoCanvas:
             remove(image_path)
 
     def on_hide_text(self):
+        """Handles the Hide Text button click event."""
         image_path, is_from_db = self.get_image_filepath()
         if not image_path:
             return
@@ -181,6 +196,7 @@ class CryptoCanvas:
         self.IH.hide_text(image_path, text)
 
     def on_reveal_text(self):
+        """Handles the Reveal Text button click event."""
         image_path, is_from_db = self.get_image_filepath()
         if not image_path:
             return
@@ -189,9 +205,11 @@ class CryptoCanvas:
             remove(image_path)
 
     def quit(self):
+        """Handles the Quit button click event."""
         self.main_window.destroy()
 
     def update_button_states(self):
+        """Updates the states of buttons based on the authentication status and image list."""
         if self.Auth.logged_in:
             self.sign_in_button.config(state=DISABLED)
             self.sign_up_button.config(state=DISABLED)
@@ -214,6 +232,7 @@ class CryptoCanvas:
             self.prev_page_button.config(state=DISABLED)
 
     def show_next_page(self):
+        """Handles the Next Page button click event."""
         self.current_image_page += 1
         self.update_images_list()
         if self.images_listbox.size() == 0:
@@ -221,11 +240,13 @@ class CryptoCanvas:
             self.update_images_list()
 
     def show_prev_page(self):
+        """Handles the Previous Page button click event."""
         if self.current_image_page > 1:
             self.current_image_page -= 1
             self.update_images_list()
 
     def update_images_list(self):
+        """Updates the list of images displayed in the listbox."""
         offset = (self.current_image_page - 1) * self.images_per_page
         images = self.Auth.db_handler.get_images_by_user_id(
             self.Auth.current_user.id,
@@ -237,6 +258,7 @@ class CryptoCanvas:
         self.update_button_states()
 
     def add_image(self):
+        """Handles the Add Image button click event."""
         image_path = filedialog.askopenfilename(filetypes=[('Image', '*.jpg;*.jpeg;*.png;')])
         if not image_path:
             return
@@ -252,6 +274,7 @@ class CryptoCanvas:
         messagebox.showinfo('Success', 'Image added successfully.')
 
     def delete_image(self):
+        """Handles the Delete Image button click event."""
         selected_image = self.images_listbox.curselection()
         if not selected_image:
             messagebox.showerror('Error', 'No image selected.')
@@ -264,6 +287,7 @@ class CryptoCanvas:
             messagebox.showinfo('Success', 'Image deleted successfully.')
 
     def get_image_data(self):
+        """Retrieves image data from the selected source."""
         if not self.listbox_has_selection():
             image_data = self.select_image_from_device()
         else:
@@ -276,6 +300,7 @@ class CryptoCanvas:
         return image_data
 
     def get_image_filepath(self):
+        """Retrieves the filepath of the selected image. Images from database use the filename 'temp_image_from_db.png'."""
         is_from_db = False
         if not self.listbox_has_selection():
             filepath = self.select_image_filepath_from_device()
@@ -294,6 +319,12 @@ class CryptoCanvas:
         return filepath, is_from_db
 
     def select_image_from_db(self):
+        """Selects an image from the database.
+
+        Returns:
+            bytes: The data of the selected image.
+
+        """
         selected_image = self.images_listbox.curselection()
         if selected_image:
             image_name = self.images_listbox.get(selected_image[0])
@@ -309,6 +340,12 @@ class CryptoCanvas:
             return None
 
     def select_image_from_device(self):
+        """Selects an image from the local device.
+
+        Returns:
+            bytes: The data of the selected image.
+
+        """
         filepath = filedialog.askopenfilename(
             filetypes=[('Image', '*.jpg;*.jpeg;*.png;')])
         if not filepath:
@@ -319,6 +356,7 @@ class CryptoCanvas:
         return image_data
 
     def select_image_filepath_from_device(self):
+        """Retrieves the filepath of an image from the local device."""
         filepath = filedialog.askopenfilename(
             filetypes=[('Image', '*.jpg;*.jpeg;*.png;')])
         if not filepath:
@@ -327,9 +365,11 @@ class CryptoCanvas:
         return filepath
 
     def listbox_has_selection(self):
+        """Checks if the listbox has a selection."""
         return bool(self.images_listbox.curselection())
 
     def fetch_image_data(self):
+        """Fetches image data based on the listbox selection."""
         selected_image = self.images_listbox.curselection()
         if selected_image:
             image_name = self.images_listbox.get(selected_image[0])
@@ -341,6 +381,7 @@ class CryptoCanvas:
             return None
 
     def display_image(self):
+        """Displays the selected listbox image."""
         image_data = self.fetch_image_data()
         if not image_data:
             self.clear_image_display()
@@ -358,9 +399,11 @@ class CryptoCanvas:
                 self.image_display.config(image='', text='Cannot display image.')
 
     def on_listbox_select(self, event):
+        """Handles the listbox selection event."""
         self.display_image()
 
     def clear_image_display(self):
+        """Clears the image display."""
         self.image_display.config(image='', text='No image selected.')
 
 if __name__ == "__main__":

@@ -7,7 +7,15 @@ from os.path import splitext
 from stegano import lsb
 
 class ImageHandler:
+    """Handles image encryption, decryption, hiding, and revealing operations."""
+
     def encrypt_image(self, image_data):
+        """Encrypts image data using AES-256-GCM.
+
+        Args:
+            image_data (bytes): The image data to be encrypted.
+
+        """
         nonce = token_bytes(12)
         key = token_bytes(32)
         password = simpledialog.askstring('Password', 'Enter password for resulting file:')
@@ -41,6 +49,12 @@ class ImageHandler:
         startfile(info_filepath)
 
     def decrypt_image(self, image_data):
+        """Decrypts image data.
+
+        Args:
+            image_data (bytes): The image data to be decrypted.
+
+        """
         nonce = simpledialog.askstring('Nonce', 'Enter nonce:')
         if not nonce:
             self.show_error('Operation canceled.')
@@ -83,6 +97,13 @@ class ImageHandler:
         startfile(filepath)
 
     def hide_image(self, carrier_image_path, secret_image_data):
+        """Hides an image within another image.
+
+        Args:
+            carrier_image_path (str): The path to the carrier image.
+            secret_image_data (bytes): The image data to be hidden.
+
+        """
         hex_string = secret_image_data.hex()
         try:
             carrier_image = lsb.hide(carrier_image_path, hex_string)
@@ -99,6 +120,12 @@ class ImageHandler:
         carrier_image.show()
 
     def reveal_image(self, filepath):
+        """Reveals a hidden image from a steganographic image.
+
+        Args:
+            filepath (str): The path to the stego image.
+
+        """
         hex_string = lsb.reveal(filepath)
         if not hex_string:
             self.show_error('No hidden image found.')
@@ -113,6 +140,13 @@ class ImageHandler:
         startfile(filepath)
 
     def hide_text(self, carrier_image_path, secret_text):
+        """Hides text within an image.
+
+        Args:
+            carrier_image_path (str): The path to the carrier image.
+            secret_text (str): The text to be hidden.
+
+        """
         try:
             carrier_image = lsb.hide(carrier_image_path, secret_text)
         except Exception as e:
@@ -127,6 +161,12 @@ class ImageHandler:
         carrier_image.show()
 
     def reveal_text(self, filepath):
+        """Reveals text hidden within an image.
+
+        Args:
+            filepath (str): The path to the stego image.
+
+        """
         revealed_text = lsb.reveal(filepath)
         if not revealed_text:
             self.show_error('No hidden text found.')
@@ -141,10 +181,28 @@ class ImageHandler:
         startfile(filepath)
 
     def show_success(self, msg):
+        """Displays a success message.
+
+        Args:
+            msg (str): The message to display.
+
+        """
         messagebox.showinfo('Success', msg)
 
     def show_error(self, msg):
+        """Displays an error message.
+
+        Args:
+            msg (str): The error message to display.
+
+        """
         messagebox.showerror('Error', msg)
 
     def get_save_image_filepath(self):
+        """Opens a dialog to get the filepath to save an image.
+
+        Returns:
+            str: The filepath selected by the user or an empty string if canceled.
+
+        """
         return filedialog.asksaveasfilename(defaultextension='.png', filetypes=[('PNG files','*.png')])
