@@ -101,6 +101,8 @@ class CryptoCanvas:
         self.delete_button.grid(row=3, column=4, sticky="we")
 
         self.images_listbox.bind("<<ListboxSelect>>", self.on_listbox_select)
+        self.main_window.bind("<Left>", lambda event: self.show_prev_page() if self.prev_page_button['state'] == 'normal' else None)
+        self.main_window.bind("<Right>", lambda event: self.show_next_page() if self.next_page_button['state'] == 'normal' else None)
 
     def on_sign_up(self):
         """Handles the Sign Up button click event."""
@@ -271,7 +273,7 @@ class CryptoCanvas:
         except IntegrityError as e:
             return
         self.update_images_list()
-        messagebox.showinfo('Success', 'Image added successfully.')
+        messagebox.showinfo('Success', f'Image {image_name} added successfully.')
 
     def delete_image(self):
         """Handles the Delete Image button click event."""
@@ -284,7 +286,8 @@ class CryptoCanvas:
         if selection == 'yes':
             self.Auth.db_handler.delete_image(self.Auth.current_user.id, image_name)
             self.update_images_list()
-            messagebox.showinfo('Success', 'Image deleted successfully.')
+            self.clear_image_display()
+            messagebox.showinfo('Success', f'Image {image_name} deleted successfully.')
 
     def get_image_data(self):
         """Retrieves image data from the selected source."""
