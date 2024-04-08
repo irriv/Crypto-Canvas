@@ -25,7 +25,7 @@ class DbHandler:
         """Create the user table in the database if it does not exist."""
         try:
             self.cursor.execute("CREATE TABLE IF NOT EXISTS users "
-                                "(id INTEGER PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, salt BLOB)")
+                                "(id INTEGER PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT)")
             self.connection.commit()
         except sqlite3.Error as e:
             self.show_error(f"Error creating user table: {e}")
@@ -90,15 +90,24 @@ class DbHandler:
         except sqlite3.Error as e:
             self.show_error(f"Error deleting image: {e}")
 
-    def add_user(self, name, email, password, salt):
+    def add_user(self, name, email, password):
         """Add a user to the database."""
         try:
             self.cursor.execute(
-                "INSERT INTO users (name, email, password, salt) VALUES (?, ?, ?, ?)",
-                (name, email, password, salt))
+                "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
+                (name, email, password))
             self.connection.commit()
         except sqlite3.Error as e:
             self.show_error(f"Error adding user: {e}")
+
+    def update_user_password(self, user_id, new_password):
+        """Update the password for a user in the database."""
+        try:
+            self.cursor.execute("UPDATE users SET password = ? WHERE id = ?",
+                (new_password, user_id))
+            self.connection.commit()
+        except sqlite3.Error as e:
+            self.show_error(f"Error updating password: {e}")
 
     def disconnect_db(self):
         """Close the database connection."""

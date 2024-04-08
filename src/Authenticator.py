@@ -1,5 +1,4 @@
-from hashlib import pbkdf2_hmac
-from os import urandom
+from argon2 import PasswordHasher
 from re import match
 from tkinter import simpledialog, messagebox
 from DbHandler import DbHandler
@@ -12,19 +11,35 @@ class Authenticator:
         self.logged_in = False
         self.current_user = None
         self.db_handler = DbHandler()
+        self.password_hasher = PasswordHasher(time_cost=1, memory_cost=47104, parallelism=1) # https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#argon2id
 
-    def hash_password(self, password, salt):
-        """Hashes the given password using PBKDF2-HMAC.
+    def hash_password(self, password):
+        """Hashes the given password using Argon2.
 
         Args:
             password (str): The password to hash.
-            salt (bytes): The salt used in the hashing process.
 
         Returns:
-            bytes: The hashed password.
+            str: The hashed password.
         """
-        hashed_password = pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+        hashed_password = self.password_hasher.hash(password)
         return hashed_password
+
+    def verify_password(self, hashed_password, password):
+        """Verifies if the given password matches the hashed password.
+
+        Args:
+            hashed_password (str): The hashed password.
+            password (str): The password to verify.
+
+        Returns:
+            bool: True if the password matches the hashed password, False otherwise.
+        """
+        try:
+            self.password_hasher.verify(hashed_password, password)
+            return True
+        except:
+            return False
 
     def sign_up(self):
         """Registers a new user."""
@@ -56,13 +71,12 @@ class Authenticator:
                                               '3. a lowercase character.\n'
                                               '4. a special symbol.\n'
                                               '5. length of 6 to 20 characters.')
-        salt = urandom(32)
-        hashed_password = self.hash_password(password, salt)
+        hashed_password = self.hash_password(password)
         name = simpledialog.askstring('Name', 'Enter name:')
         if not name:
             messagebox.showerror('Error', 'Operation canceled.')
             return
-        self.db_handler.add_user(name, email, hashed_password, salt)
+        self.db_handler.add_user(name, email, hashed_password)
         self.logged_in = True
         user_id = self.db_handler.get_user(email)[0]
         self.current_user = CurrentUser(user_id, name)
@@ -80,21 +94,26 @@ class Authenticator:
             user = self.db_handler.get_user(email)
             if not user:
                 messagebox.showerror('Error', 'User not found.')
-        user_id, name, stored_email, stored_password, salt = user
-        hashed_password = None
-        while hashed_password != stored_password:
+        user_id, name, stored_email, stored_password = user
+        attempts = 3
+        while attempts > 0:
             password = simpledialog.askstring('Password', 'Enter password:', show='*')
             if not password:
                 messagebox.showerror('Error', 'Operation canceled.')
                 return
-            hashed_password = self.hash_password(password, salt)
-            if hashed_password == stored_password:
+            if self.password_hasher.verify(stored_password, password):
+                if self.password_hasher.check_needs_rehash(stored_password):
+                    new_hash = self.hash_password(password)
+                    self.db_handler.update_user_password(user_id, new_hash)
                 self.logged_in = True
                 self.current_user = CurrentUser(user_id, name)
                 messagebox.showinfo('Success',
                                     f'Signed in successfully as {self.current_user.name}')
+                return
             else:
                 messagebox.showwarning('Warning', 'Incorrect password.')
+                attempts -= 1
+        messagebox.showerror('Error', 'Maximum login attempts exceeded.')
 
     def sign_out(self):
         """Signs out the current user."""

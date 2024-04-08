@@ -149,6 +149,8 @@ class CryptoCanvas:
             return
         secret_image_data = self.get_image_data()
         if not secret_image_data:
+            if is_from_db:
+                remove(carrier_image_path)
             return
         self.IH.hide_image(carrier_image_path, secret_image_data)
         if is_from_db:
@@ -168,34 +170,14 @@ class CryptoCanvas:
         image_path, is_from_db = self.get_image_filepath()
         if not image_path:
             return
-        selection = messagebox.askyesnocancel('Text input', 'Do you want to select a text file?')
-        if selection == None:
-            messagebox.showerror('Error', 'Operation canceled.')
+        text = self.get_text_to_hide()
+        if not text:
+            if is_from_db:
+                remove(image_path)
             return
-        if selection == True:
-            text_filepath = filedialog.askopenfilename(
-                filetypes=[('Text to hide', '*.txt;')])
-            if not text_filepath:
-                messagebox.showerror('Error', 'Operation canceled.')
-                return
-            with open(text_filepath, 'r') as f:
-                try:
-                    text = f.read()
-                except UnicodeDecodeError as e:
-                    messagebox.showerror('Error', 'Invalid characters found in text file.')
-        else:
-            text = simpledialog.askstring('Text', 'Enter text to hide:')
-            if text is None or text == '':
-                messagebox.showerror('Error', 'Operation canceled.')
-                return
-            try:
-                with NamedTemporaryFile(mode='w') as temp_file:
-                    temp_file.write(text)
-            except UnicodeEncodeError:
-                messagebox.showerror('Error', 'Invalid characters found in text.')
-                return
-
         self.IH.hide_text(image_path, text)
+        if is_from_db:
+            remove(image_path)
 
     def on_reveal_text(self):
         """Handles the Reveal Text button click event."""
@@ -372,6 +354,38 @@ class CryptoCanvas:
             messagebox.showerror('Error', 'Operation canceled.')
             return None
         return filepath
+
+    def get_text_to_hide(self):
+        selection = messagebox.askyesnocancel('Text input',
+                                              'Do you want to select a text file?')
+        if selection == None:
+            messagebox.showerror('Error', 'Operation canceled.')
+            return None
+        if selection == True:
+            text_filepath = filedialog.askopenfilename(
+                filetypes=[('Text to hide', '*.txt;')])
+            if not text_filepath:
+                messagebox.showerror('Error', 'Operation canceled.')
+                return None
+            with open(text_filepath, 'r') as f:
+                try:
+                    text = f.read()
+                except UnicodeDecodeError as e:
+                    messagebox.showerror('Error',
+                                         'Invalid characters found in text file.')
+        else:
+            text = simpledialog.askstring('Text', 'Enter text to hide:')
+            if text is None or text == '':
+                messagebox.showerror('Error', 'Operation canceled.')
+                return None
+            try:
+                with NamedTemporaryFile(mode='w') as temp_file:
+                    temp_file.write(text)
+            except UnicodeEncodeError:
+                messagebox.showerror('Error',
+                                     'Invalid characters found in text.')
+                return None
+        return text
 
     def listbox_has_selection(self):
         """Checks if the listbox has a selection."""
