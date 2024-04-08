@@ -44,7 +44,7 @@ class Authenticator:
         password = ''
         password_validate_pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!#%*?&]{6,20}$"  # https://www.geeksforgeeks.org/password-validation-in-python/
         while not match(password_validate_pattern, password):
-            password = simpledialog.askstring('Password', 'Enter password:')
+            password = simpledialog.askstring('Password', 'Enter password:', show='*')
             if not password:
                 messagebox.showerror('Error', 'Operation canceled.')
                 return
@@ -83,7 +83,7 @@ class Authenticator:
         user_id, name, stored_email, stored_password, salt = user
         hashed_password = None
         while hashed_password != stored_password:
-            password = simpledialog.askstring('Password', 'Enter password:')
+            password = simpledialog.askstring('Password', 'Enter password:', show='*')
             if not password:
                 messagebox.showerror('Error', 'Operation canceled.')
                 return

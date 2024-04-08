@@ -168,11 +168,11 @@ class CryptoCanvas:
         image_path, is_from_db = self.get_image_filepath()
         if not image_path:
             return
-        choice = messagebox.askyesnocancel('Text input', 'Do you want to select a text file?')
-        if choice == None:
+        selection = messagebox.askyesnocancel('Text input', 'Do you want to select a text file?')
+        if selection == None:
             messagebox.showerror('Error', 'Operation canceled.')
             return
-        if choice == True:
+        if selection == True:
             text_filepath = filedialog.askopenfilename(
                 filetypes=[('Text to hide', '*.txt;')])
             if not text_filepath:
@@ -294,9 +294,12 @@ class CryptoCanvas:
         if not self.listbox_has_selection():
             image_data = self.select_image_from_device()
         else:
-            selection = messagebox.askquestion('Select Image',
+            selection = messagebox.askyesnocancel('Select Image',
                                                'Do you want to use the database selection?')
-            if selection == 'yes':
+            if selection == None:
+                messagebox.showerror('Error', 'Operation canceled.')
+                return
+            if selection == True:
                 image_data = self.select_image_from_db()
             else:
                 image_data = self.select_image_from_device()
@@ -309,9 +312,12 @@ class CryptoCanvas:
             filepath = self.select_image_filepath_from_device()
         else:
             selected_image = self.images_listbox.curselection()
-            selection = messagebox.askquestion('Select Image',
+            selection = messagebox.askyesnocancel('Select Image',
                                                'Do you want to use the database selection?')
-            if selection == 'yes':
+            if selection == None:
+                messagebox.showerror('Error', 'Operation canceled.')
+                return None, is_from_db
+            if selection == True:
                 image_data = self.select_image_from_db()
                 filepath = "temp_image_from_db.png"
                 with open(filepath, "wb") as file:
@@ -393,7 +399,8 @@ class CryptoCanvas:
                 image_stream = BytesIO(image_data)
                 image = Image.open(image_stream)
                 width = self.image_display_frame.winfo_width()
-                image.thumbnail((width, image.height))
+                height = self.image_display_frame.winfo_height()
+                image.thumbnail((width, height))
                 tk_image = ImageTk.PhotoImage(image)
                 self.photo_image = tk_image
                 self.image_display.config(image=self.photo_image)
