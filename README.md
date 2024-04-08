@@ -4,7 +4,7 @@ Image encryption/decryption, image and text-based steganography tool with a loca
 ![GUI](https://github.com/irriv/Crypto-Canvas/assets/105553132/ccd82381-d553-4c46-9315-0c94b3adbd78)
 ## Security features
 - Encryption with AES-256-GCM
-- Password storing and authentication with PBKDF2-HMAC-SHA-256
+- Password storing and authentication with Argon2
 - Obscurity through LSB steganography
 ## How to install
 The program was tested on Python 3.7.9.
@@ -12,6 +12,7 @@ Libraries used:
 - cryptography `pip install cryptography`
 - PIL `pip install pillow`
 - stegano `pip install stegano`
+- argon2 `pip install argon2-cffi`
 
 Other libraries are included in Python's standard library.
 ## How to use
