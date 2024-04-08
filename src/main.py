@@ -356,6 +356,7 @@ class CryptoCanvas:
         return filepath
 
     def get_text_to_hide(self):
+        """Retrieves the text to hide in an image."""
         selection = messagebox.askyesnocancel('Text input',
                                               'Do you want to select a text file?')
         if selection == None:
