@@ -301,9 +301,9 @@ class CryptoCanvas:
                 return None, is_from_db
             if selection == True:
                 image_data = self.select_image_from_db()
-                filepath = "temp_image_from_db.png"
-                with open(filepath, "wb") as file:
-                    file.write(image_data)
+                with NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
+                    temp_file.write(image_data)
+                    filepath = temp_file.name
                 is_from_db = True
             else:
                 filepath = self.select_image_filepath_from_device()

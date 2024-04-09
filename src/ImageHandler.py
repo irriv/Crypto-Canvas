@@ -27,7 +27,7 @@ class ImageHandler:
         except UnicodeEncodeError as e:
             self.show_error('Invalid password.')
             return
-        ciphertext = AESGCM(key).encrypt(nonce, image_data, password)
+        ciphertext = nonce + AESGCM(key).encrypt(nonce, image_data, password)
         filepath = self.get_save_image_filepath()
         if not filepath:
             self.show_error('Operation canceled.')
@@ -38,7 +38,6 @@ class ImageHandler:
         root, _ = splitext(filepath)
         info_filepath = f'{root}_encryption_info.txt'
         with open(info_filepath, 'w') as file:
-            file.write('Nonce: ' + nonce.hex() + '\n')
             file.write('Key: ' + key.hex() + '\n')
             try:
                 file.write('Password: ' + password.decode('utf-8') + '\n')
@@ -55,15 +54,6 @@ class ImageHandler:
             image_data (bytes): The image data to be decrypted.
 
         """
-        nonce = simpledialog.askstring('Nonce', 'Enter nonce:')
-        if not nonce:
-            self.show_error('Operation canceled.')
-            return
-        try:
-            nonce = bytes.fromhex(nonce)
-        except ValueError as e:
-            self.show_error('Invalid nonce.')
-            return
         key = simpledialog.askstring('Key', 'Enter key:')
         if not key:
             self.show_error('Operation canceled.')
@@ -83,7 +73,7 @@ class ImageHandler:
             self.show_error('Invalid password.')
             return
         try:
-            decrypted_data = AESGCM(key).decrypt(nonce, image_data, password)
+            decrypted_data = AESGCM(key).decrypt(image_data[:12], image_data[12:], password)
         except InvalidTag as e:
             self.show_error('Decryption failed.')
             return
@@ -110,7 +100,6 @@ class ImageHandler:
         except Exception as e:
             self.show_error('The message you want to hide is too long for the carrier.')
             return
-        root, _ = splitext(carrier_image_path)
         filepath = self.get_save_image_filepath()
         if not filepath:
             self.show_error('Operation canceled.')
@@ -126,7 +115,11 @@ class ImageHandler:
             filepath (str): The path to the stego image.
 
         """
-        hex_string = lsb.reveal(filepath)
+        try:
+            hex_string = lsb.reveal(filepath)
+        except IndexError as e:
+            self.show_error('No hidden image found.')
+            return
         if not hex_string:
             self.show_error('No hidden image found.')
             return
@@ -167,7 +160,11 @@ class ImageHandler:
             filepath (str): The path to the stego image.
 
         """
-        revealed_text = lsb.reveal(filepath)
+        try:
+            revealed_text = lsb.reveal(filepath)
+        except IndexError as e:
+            self.show_error('No hidden text found.')
+            return
         if not revealed_text:
             self.show_error('No hidden text found.')
             return

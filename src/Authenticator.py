@@ -1,4 +1,5 @@
 from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 from re import match
 from tkinter import simpledialog, messagebox
 from DbHandler import DbHandler
@@ -14,7 +15,7 @@ class Authenticator:
         self.password_hasher = PasswordHasher(time_cost=1, memory_cost=47104, parallelism=1) # https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#argon2id
 
     def hash_password(self, password):
-        """Hashes the given password using Argon2.
+        """Hashes the given password using Argon2id.
 
         Args:
             password (str): The password to hash.
@@ -40,6 +41,17 @@ class Authenticator:
             return True
         except:
             return False
+
+    def check_needs_rehash(self, hashed_password):
+        """Check if the hashed password needs rehashing.
+
+            Args:
+                hashed_password (str): The hashed password to check.
+
+            Returns:
+                bool: True if the hashed password needs rehashing, False otherwise.
+            """
+        return self.password_hasher.check_needs_rehash(hashed_password)
 
     def sign_up(self):
         """Registers a new user."""
@@ -101,18 +113,22 @@ class Authenticator:
             if not password:
                 messagebox.showerror('Error', 'Operation canceled.')
                 return
-            if self.password_hasher.verify(stored_password, password):
-                if self.password_hasher.check_needs_rehash(stored_password):
-                    new_hash = self.hash_password(password)
-                    self.db_handler.update_user_password(user_id, new_hash)
-                self.logged_in = True
-                self.current_user = CurrentUser(user_id, name)
-                messagebox.showinfo('Success',
-                                    f'Signed in successfully as {self.current_user.name}')
-                return
-            else:
-                messagebox.showwarning('Warning', 'Incorrect password.')
+            try:
+                if self.verify_password(stored_password, password):
+                    if self.check_needs_rehash(stored_password):
+                        new_hash = self.hash_password(password)
+                        self.db_handler.update_user_password(user_id, new_hash)
+                    self.logged_in = True
+                    self.current_user = CurrentUser(user_id, name)
+                    messagebox.showinfo('Success',
+                                        f'Signed in successfully as {self.current_user.name}')
+                    return
+                else:
+                    attempts -= 1
+                    messagebox.showwarning('Warning', 'Incorrect password.')
+            except VerifyMismatchError as e:
                 attempts -= 1
+                messagebox.showwarning('Warning', 'Incorrect password.')
         messagebox.showerror('Error', 'Maximum login attempts exceeded.')
 
     def sign_out(self):
