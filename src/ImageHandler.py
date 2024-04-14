@@ -5,6 +5,7 @@ from cryptography.exceptions import InvalidTag
 from os import startfile
 from os.path import splitext
 from stegano import lsb
+from stegano.lsb import generators
 
 class ImageHandler:
     """Handles image encryption, decryption, hiding, and revealing operations."""
@@ -96,7 +97,7 @@ class ImageHandler:
         """
         hex_string = secret_image_data.hex()
         try:
-            carrier_image = lsb.hide(carrier_image_path, hex_string)
+            carrier_image = lsb.hide(carrier_image_path, hex_string, generators.eratosthenes())
         except Exception as e:
             self.show_error('The message you want to hide is too long for the carrier.')
             return
@@ -116,7 +117,7 @@ class ImageHandler:
 
         """
         try:
-            hex_string = lsb.reveal(filepath)
+            hex_string = lsb.reveal(filepath, generators.eratosthenes())
         except IndexError as e:
             self.show_error('No hidden image found.')
             return
@@ -141,7 +142,7 @@ class ImageHandler:
 
         """
         try:
-            carrier_image = lsb.hide(carrier_image_path, secret_text)
+            carrier_image = lsb.hide(carrier_image_path, secret_text, generators.eratosthenes())
         except Exception as e:
             self.show_error('The message you want to hide is too long for the carrier.')
             return
@@ -161,7 +162,7 @@ class ImageHandler:
 
         """
         try:
-            revealed_text = lsb.reveal(filepath)
+            revealed_text = lsb.reveal(filepath, generators.eratosthenes())
         except IndexError as e:
             self.show_error('No hidden text found.')
             return
