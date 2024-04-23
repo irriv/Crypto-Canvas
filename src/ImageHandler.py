@@ -6,9 +6,30 @@ from os import startfile
 from os.path import splitext
 from stegano import lsb
 from stegano.lsb import generators
+from argon2 import PasswordHasher
+import base64
 
 class ImageHandler:
     """Handles image encryption, decryption, hiding, and revealing operations."""
+
+    def __init__(self):
+        """Initialize the Authenticator."""
+        self.password_hasher = PasswordHasher(time_cost=1, memory_cost=47104, parallelism=1, hash_len=32, salt_len=16)
+
+    def derive_key(self, password, salt):
+        """Derives a cryptographic key from the given password and salt.
+
+        Args:
+            password (str): The password to derive the key from.
+            salt (bytes): The salt used in key derivation.
+
+        Returns:
+            bytes: The derived cryptographic key.
+
+        """
+        output = self.password_hasher.hash(password, salt=salt) # Get output of hasher
+        encoded_hash = output.split('$')[-1] # Unpadded b64 encoded hash
+        return base64.b64decode(encoded_hash + "=") # Add padding and decode hash
 
     def encrypt_image(self, image_data):
         """Encrypts image data using AES-256-GCM.
@@ -17,8 +38,6 @@ class ImageHandler:
             image_data (bytes): The image data to be encrypted.
 
         """
-        nonce = token_bytes(12)
-        key = token_bytes(32)
         password = simpledialog.askstring('Password', 'Enter password for resulting file:')
         if password is None:
             self.show_error('Operation canceled.')
@@ -28,7 +47,10 @@ class ImageHandler:
         except UnicodeEncodeError as e:
             self.show_error('Invalid password.')
             return
-        ciphertext = nonce + AESGCM(key).encrypt(nonce, image_data, password)
+        nonce = token_bytes(12) # Initialization Vector (IV)
+        salt = token_bytes(16) # Generate random salt
+        key = self.derive_key(password, salt)
+        ciphertext = nonce + AESGCM(key).encrypt(nonce, image_data, password) + salt
         filepath = self.get_save_image_filepath()
         if not filepath:
             self.show_error('Operation canceled.')
@@ -36,17 +58,7 @@ class ImageHandler:
         with open(filepath, 'wb') as encrypted_file:
             encrypted_file.write(ciphertext)
         self.show_success(f'Encryption successful. Encrypted image saved to {filepath}')
-        root, _ = splitext(filepath)
-        info_filepath = f'{root}_encryption_info.txt'
-        with open(info_filepath, 'w') as file:
-            file.write('Key: ' + key.hex() + '\n')
-            try:
-                file.write('Password: ' + password.decode('utf-8') + '\n')
-            except UnicodeEncodeError as e:
-                self.show_error('Password could not be written.')
-        self.show_success(f'Encryption info written to {info_filepath}')
         startfile(filepath)
-        startfile(info_filepath)
 
     def decrypt_image(self, image_data):
         """Decrypts image data.
@@ -55,15 +67,6 @@ class ImageHandler:
             image_data (bytes): The image data to be decrypted.
 
         """
-        key = simpledialog.askstring('Key', 'Enter key:')
-        if not key:
-            self.show_error('Operation canceled.')
-            return
-        try:
-            key = bytes.fromhex(key)
-        except ValueError as e:
-            self.show_error('Invalid key.')
-            return
         password = simpledialog.askstring('Password', 'Enter password:')
         if password is None:
             self.show_error('Operation canceled.')
@@ -74,7 +77,11 @@ class ImageHandler:
             self.show_error('Invalid password.')
             return
         try:
-            decrypted_data = AESGCM(key).decrypt(image_data[:12], image_data[12:], password)
+            nonce = image_data[:12]
+            salt = image_data[-16:]
+            key = self.derive_key(password, salt)
+            ciphertext = image_data[12:-16]
+            decrypted_data = AESGCM(key).decrypt(nonce, ciphertext, password)
         except InvalidTag as e:
             self.show_error('Decryption failed.')
             return
