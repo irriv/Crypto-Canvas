@@ -3,11 +3,13 @@ from secrets import token_bytes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.exceptions import InvalidTag
 from os import startfile
+from os import remove
 from os.path import splitext
 from stegano import lsb
 from stegano.lsb import generators
 from argon2 import PasswordHasher
 import base64
+from PIL import UnidentifiedImageError
 
 class ImageHandler:
     """Handles image encryption, decryption, hiding, and revealing operations."""
@@ -102,11 +104,14 @@ class ImageHandler:
             secret_image_data (bytes): The image data to be hidden.
 
         """
-        hex_string = secret_image_data.hex()
         try:
+            hex_string = secret_image_data.hex()
             carrier_image = lsb.hide(carrier_image_path, hex_string, generators.eratosthenes())
+        except UnidentifiedImageError as e:
+            self.show_error('The carrier image could not be identified.')
+            return
         except Exception as e:
-            self.show_error('The message you want to hide is too long for the carrier.')
+            self.show_error('The message you want to hide is too long for the carrier OR the secret image could not be identified.')
             return
         filepath = self.get_save_image_filepath()
         if not filepath:
@@ -125,6 +130,9 @@ class ImageHandler:
         """
         try:
             hex_string = lsb.reveal(filepath, generators.eratosthenes())
+        except UnidentifiedImageError as e:
+            self.show_error('The image could not be identified.')
+            return
         except IndexError as e:
             self.show_error('No hidden image found.')
             return
@@ -136,7 +144,13 @@ class ImageHandler:
             self.show_error('Operation canceled.')
             return
         with open(filepath, 'wb') as f:
-            f.write(bytes.fromhex(hex_string))
+            try:
+                f.write(bytes.fromhex(hex_string))
+            except ValueError as e:
+                f.close()
+                remove(filepath)
+                self.show_error('The message contained invalid characters and could not be saved. The secret message could be text instead.')
+                return
         self.show_success(f'Image revealed successfully. Revealed image saved to {filepath}')
         startfile(filepath)
 
@@ -150,6 +164,9 @@ class ImageHandler:
         """
         try:
             carrier_image = lsb.hide(carrier_image_path, secret_text, generators.eratosthenes())
+        except UnidentifiedImageError as e:
+            self.show_error('The image could not be identified.')
+            return
         except Exception as e:
             self.show_error('The message you want to hide is too long for the carrier.')
             return
@@ -170,6 +187,9 @@ class ImageHandler:
         """
         try:
             revealed_text = lsb.reveal(filepath, generators.eratosthenes())
+        except UnidentifiedImageError as e:
+            self.show_error('The image could not be identified.')
+            return
         except IndexError as e:
             self.show_error('No hidden text found.')
             return
