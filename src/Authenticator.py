@@ -58,18 +58,19 @@ class Authenticator:
         email = ''
         email_validate_pattern = r"^\S+@\S+\.\S+$" # https://uibakery.io/regex-library/email-regex-python
         self.db_handler.connect_db()
-        existing_user = self.db_handler.get_user(email)
         while not match(email_validate_pattern, email):
             email = simpledialog.askstring('Email', 'Enter email:')
             if not email:
                 messagebox.showerror('Error', 'Operation canceled.')
                 return
+            existing_user = self.db_handler.get_user(email)
             if existing_user:
                 messagebox.showerror('Error', 'User with this email already exists.')
+                email = ''
             elif not match(email_validate_pattern, email):
                 messagebox.showerror('Error', 'Invalid email format.')
         password = ''
-        password_validate_pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!#%*?&]{6,20}$"  # https://www.geeksforgeeks.org/password-validation-in-python/
+        password_validate_pattern = r"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)[A-Za-z\d]{8,}$"
         while not match(password_validate_pattern, password):
             password = simpledialog.askstring('Password', 'Enter password:', show='*')
             if not password:
@@ -78,16 +79,15 @@ class Authenticator:
             if not match(password_validate_pattern, password):
                 messagebox.showerror('Error', 'Invalid password format.\n'
                                               'The password requires:\n'
-                                              '1. a number.\n'
-                                              '2. an uppercase letter.\n'
-                                              '3. a lowercase character.\n'
-                                              '4. a special symbol.\n'
-                                              '5. length of 6 to 20 characters.')
-        hashed_password = self.hash_password(password)
+                                              '1. an uppercase letter.\n'
+                                              '2. a lowercase character.\n'
+                                              '3. a number.\n'
+                                              '4. length of 8 characters or greater.')
         name = simpledialog.askstring('Name', 'Enter name:')
         if not name:
             messagebox.showerror('Error', 'Operation canceled.')
             return
+        hashed_password = self.hash_password(password)
         self.db_handler.add_user(name, email, hashed_password)
         self.logged_in = True
         user_id = self.db_handler.get_user(email)[0]
