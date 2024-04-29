@@ -199,12 +199,14 @@ class CryptoCanvas:
             self.sign_up_button.config(state=DISABLED)
             self.sign_out_button.config(state=NORMAL)
             self.add_button.config(state=NORMAL)
-            self.delete_button.config(state=NORMAL)
         else:
             self.sign_in_button.config(state=NORMAL)
             self.sign_up_button.config(state=NORMAL)
             self.sign_out_button.config(state=DISABLED)
             self.add_button.config(state=DISABLED)
+        if self.listbox_has_selection():
+            self.delete_button.config(state=NORMAL)
+        else:
             self.delete_button.config(state=DISABLED)
         if self.images_listbox.size() < 10:
             self.next_page_button.config(state=DISABLED)
@@ -222,6 +224,7 @@ class CryptoCanvas:
         if self.images_listbox.size() == 0:
             self.current_image_page -= 1
             self.update_images_list()
+            messagebox.showwarning('Warning', 'No more images in the database.')
 
     def show_prev_page(self):
         """Handles the Previous Page button click event."""
@@ -267,8 +270,11 @@ class CryptoCanvas:
         selection = messagebox.askquestion('Confirm Delete', f'Are you sure you want to delete {image_name}?')
         if selection == 'yes':
             self.Auth.db_handler.delete_image(self.Auth.current_user.id, image_name)
-            self.update_images_list()
             self.clear_image_display()
+            self.update_images_list()
+            if self.images_listbox.size() == 0:
+                self.current_image_page -= 1
+                self.update_images_list()
             messagebox.showinfo('Success', f'Image {image_name} deleted successfully.')
 
     def get_image_data(self):
@@ -425,6 +431,7 @@ class CryptoCanvas:
 
     def on_listbox_select(self, event):
         """Handles the listbox selection event."""
+        self.update_button_states()
         self.display_image()
 
     def clear_image_display(self):
