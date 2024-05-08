@@ -7,10 +7,9 @@ Image encryption/decryption, image and text-based steganography tool with a loca
 - Password storing and authentication with Argon2id
 - Obscurity through LSB steganography
 ## How to install
-The program was tested on Python 3.7.9.
+The program requires Python 3.9 at minimum.
 Libraries used:
 - cryptography `pip install cryptography`
-- PIL `pip install pillow`
 - stegano `pip install stegano`
 - argon2 `pip install argon2-cffi`
 
