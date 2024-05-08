@@ -17,7 +17,7 @@ Other libraries are included in Python's standard library.
 ## How to use
 To run the program, run `python main.py` or `py main.py`.
 
-Signing in grants access to the **database feature**. The user can store images in the database and use them for the operations in the program. The database can be navigated with **arrow keys**.
+Signing in grants access to the **database feature**. The user can store images in the database and use them for the operations in the program. The database can be navigated with **mouse and arrow keys**.
 
 For the image operations, simply choose an image file from the database or the device for the given operation. The **Hide image** -operation requires two images to be chosen; the first image will hide the second image within itself.
 
